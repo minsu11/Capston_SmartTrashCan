@@ -43,9 +43,13 @@ import time
 GPIO.setmode(GPIO.BCM)
 
 dcMotors = [21, 18, 20, 12, 22, 13, 23, 19]
-forward = [True, False, True, False, True, False, True, False]
-backward = [False, True, False, True, False, True, False, True]
-STOP = [False, False, False, False, False, False, False, False]
+
+turn_left = [False,False,False,False,False,True,False,True];
+turn_right = [False,True,False,True,False,False,False,False];
+
+backward = [True,False,True,False,True,False,True,False];
+forward = [False,True,False,True,False,True,False,True];
+STOP = [False,False,False,False,False,False,False,False];
 
 for dcMotor in dcMotors:
     GPIO.setup(dcMotor, GPIO.OUT)
@@ -154,7 +158,7 @@ def run(
 
         # Second-stage classifier (optional)
         # pred = utils.general.apply_classifier(pred, classifier_model, im, im0s)
-
+    
         # Process predictions
         for i, det in enumerate(pred):  # per image
             seen += 1
@@ -181,6 +185,7 @@ def run(
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             imc = im0.copy() if save_crop else im0  # for save_crop
             annotator = Annotator(im0, line_width=line_thickness, example=str(names))
+
             if len(det): # @객체가 감지된 경우
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
@@ -208,48 +213,51 @@ def run(
                 # Custom code for specific object detection
                 for *xyxy, conf, cls in reversed(det):
                     c = int(cls)  # integer class
-                    if names[c] == 'person':
-                        # Custom code for person detection
-                        #print("########## person ###########")
-                        # Check if person is within a certain distance
-                        # Define your distance threshold
-                        distance_threshold = 168  # Example: 5.0 meters / 168이 30cm 정도
+                    
+                    # Check if person is within a certain distance
+                    # Define your distance threshold
+                    distance_threshold = 300  # Example: 5.0 meters / 168이 30cm 정도
 
-                        # Compute distance between objects and reference point
-                        x_reference = im.shape[3] / 2  # 이미지의 가로 중앙 좌표
-                        y_reference = im.shape[2] / 2  # 이미지의 세로 중앙 좌표
+                    # Compute distance between objects and reference point
+                    x_reference = im.shape[3] / 2  # 이미지의 가로 중앙 좌표
+                    y_reference = im.shape[2] / 2  # 이미지의 세로 중앙 좌표
 
-                        reference_point = (x_reference, y_reference)  # Specify your reference point
-                        object_center = ((xyxy[0] + xyxy[2]) / 2, (xyxy[1] + xyxy[3]) / 2)
-                        distance = compute_distance(reference_point, object_center)  # Implement your own distance computation function
+                    reference_point = (x_reference, y_reference)  # Specify your reference point
+                    object_center = ((xyxy[0] + xyxy[2]) / 2, (xyxy[1] + xyxy[3]) / 2)
+                    distance = compute_distance(reference_point, object_center)  # Implement your own distance computation function
 
-                        print("거리는  ")
-                        print(distance)
+                    print("거리는 ")
+                    print(distance)
 
-                        print("포워드 직전")
-                        for i in range(len(dcMotors)):
-                            # print("포워드 시작")
-                            GPIO.output(dcMotors[i], forward[i])
-                            # print("포워드 중")
-                        time.sleep(1.0)
+                    # Check if the person is within the distance threshold
+                    if distance <= distance_threshold:
+                        # Execute your desired code here
+                        print("Something within the distance threshold")
                         
-                        print("정지 직전")
+                        # print("backward 시작")
                         for i in range(len(dcMotors)):
-                            # print("정지 시작")
-                            GPIO.output(dcMotors[i], STOP[i])
-                            # print("정지 중")
-                        time.sleep(1.0)
+                            GPIO.output(dcMotors[i], backward[i])
+                        time.sleep(2.0)
+                        
+                        for i in range(len(dcMotors)):
+                            GPIO.output(dcMotors[i], turn_right[i])
+                        time.sleep(2.0)
+                    else:
+                        print("Something outside the distance threshold")
 
-                        # Check if the person is within the distance threshold
-                        if distance <= distance_threshold:
-                            # Execute your desired code here
-                            print("Person within the distance threshold")
-                        # else:
-                        #     print("Person outside the distance threshold")
+                        for i in range(len(dcMotors)):
+                            GPIO.output(dcMotors[i], forward[i])
+                        time.sleep(1.0)
 
             else:
                 # Code to be executed when no objects are detected
                 print("########## No objects detected ###########")
+                
+                # print("포워드 시작")
+                for i in range(len(dcMotors)):
+                    GPIO.output(dcMotors[i], forward[i])
+                time.sleep(2.0)
+ 
 
             # Stream results
             im0 = annotator.result()
@@ -333,9 +341,13 @@ def parse_opt():
 
 def main(opt):
     check_requirements(ROOT / 'requirements.txt', exclude=('tensorboard', 'thop'))
-    run(**vars(opt))
+    try :
+        run(**vars(opt))    
+    except KeyboardInterrupt:
+        for dcMotor in dcMotors:
+            GPIO.output(dcMotor, False)  
+        GPIO.cleanup()    
 
-    print("모터 모두 폴스")
     for dcMotor in dcMotors:
         GPIO.output(dcMotor, False)
 
