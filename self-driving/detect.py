@@ -35,6 +35,21 @@ import sys
 from pathlib import Path
 
 import torch
+import math
+
+import RPi.GPIO as GPIO
+import time
+
+GPIO.setmode(GPIO.BCM)
+
+dcMotors = [21, 18, 20, 12, 22, 13, 23, 19]
+forward = [True, False, True, False, True, False, True, False]
+backward = [False, True, False, True, False, True, False, True]
+STOP = [False, False, False, False, False, False, False, False]
+
+for dcMotor in dcMotors:
+    GPIO.setup(dcMotor, GPIO.OUT)
+    GPIO.output(dcMotor, False)
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -49,6 +64,12 @@ from utils.general import (LOGGER, Profile, check_file, check_img_size, check_im
 from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import select_device, smart_inference_mode
 
+# 두 점 사이의 거리를 계산
+def compute_distance(point1, point2):
+    x1, y1 = point1
+    x2, y2 = point2
+    distance = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+    return distance
 
 @smart_inference_mode()
 def run(
@@ -144,13 +165,23 @@ def run(
                 p, im0, frame = path, im0s.copy(), getattr(dataset, 'frame', 0)
 
             p = Path(p)  # to Path
+            
             save_path = str(save_dir / p.name)  # im.jpg
+            # 오류 발생해서 위 코드 수정
+            # if vid_path is not None and len(vid_path) > i and vid_path[i] is not None:  # vid_path가 None이 아니고 vid_path[i]가 None이 아닐 경우
+            #     if isinstance(vid_path[i], str):  # vid_path[i]가 문자열(str) 객체일 경우
+            #         save_path = str(save_dir / vid_path[i])  # im.jpg
+            #     else:
+            #         save_path = str(save_dir / vid_path[i].name)  # im.jpg
+            # else:
+            #     save_path = str(save_dir / p.name)  # im.jpg
+
             txt_path = str(save_dir / 'labels' / p.stem) + ('' if dataset.mode == 'image' else f'_{frame}')  # im.txt
             s += '%gx%g ' % im.shape[2:]  # print string
             gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
             imc = im0.copy() if save_crop else im0  # for save_crop
             annotator = Annotator(im0, line_width=line_thickness, example=str(names))
-            if len(det):
+            if len(det): # @객체가 감지된 경우
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
 
@@ -174,6 +205,52 @@ def run(
                     if save_crop:
                         save_one_box(xyxy, imc, file=save_dir / 'crops' / names[c] / f'{p.stem}.jpg', BGR=True)
 
+                # Custom code for specific object detection
+                for *xyxy, conf, cls in reversed(det):
+                    c = int(cls)  # integer class
+                    if names[c] == 'person':
+                        # Custom code for person detection
+                        #print("########## person ###########")
+                        # Check if person is within a certain distance
+                        # Define your distance threshold
+                        distance_threshold = 168  # Example: 5.0 meters / 168이 30cm 정도
+
+                        # Compute distance between objects and reference point
+                        x_reference = im.shape[3] / 2  # 이미지의 가로 중앙 좌표
+                        y_reference = im.shape[2] / 2  # 이미지의 세로 중앙 좌표
+
+                        reference_point = (x_reference, y_reference)  # Specify your reference point
+                        object_center = ((xyxy[0] + xyxy[2]) / 2, (xyxy[1] + xyxy[3]) / 2)
+                        distance = compute_distance(reference_point, object_center)  # Implement your own distance computation function
+
+                        print("거리는  ")
+                        print(distance)
+
+                        print("포워드 직전")
+                        for i in range(len(dcMotors)):
+                            # print("포워드 시작")
+                            GPIO.output(dcMotors[i], forward[i])
+                            # print("포워드 중")
+                        time.sleep(1.0)
+                        
+                        print("정지 직전")
+                        for i in range(len(dcMotors)):
+                            # print("정지 시작")
+                            GPIO.output(dcMotors[i], STOP[i])
+                            # print("정지 중")
+                        time.sleep(1.0)
+
+                        # Check if the person is within the distance threshold
+                        if distance <= distance_threshold:
+                            # Execute your desired code here
+                            print("Person within the distance threshold")
+                        # else:
+                        #     print("Person outside the distance threshold")
+
+            else:
+                # Code to be executed when no objects are detected
+                print("########## No objects detected ###########")
+
             # Stream results
             im0 = annotator.result()
             if view_img:
@@ -185,10 +262,10 @@ def run(
                 cv2.waitKey(1)  # 1 millisecond
 
             # Save results (image with detections)
-            if save_img:
+            if False: # save_img:
                 if dataset.mode == 'image':
                     cv2.imwrite(save_path, im0)
-                else:  # 'video' or 'stream'
+                else:  # 'video' or 'stream'                    
                     if vid_path[i] != save_path:  # new video
                         vid_path[i] = save_path
                         if isinstance(vid_writer[i], cv2.VideoWriter):
@@ -202,6 +279,9 @@ def run(
                         save_path = str(Path(save_path).with_suffix('.mp4'))  # force *.mp4 suffix on results videos
                         vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (w, h))
                     vid_writer[i].write(im0)
+            
+            if False: #len(vid_path) > 0 and vid_path[i] != save_path:  # new video
+                print('Video:', save_path)
 
         # Print time (inference-only)
         LOGGER.info(f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
@@ -254,6 +334,12 @@ def parse_opt():
 def main(opt):
     check_requirements(ROOT / 'requirements.txt', exclude=('tensorboard', 'thop'))
     run(**vars(opt))
+
+    print("모터 모두 폴스")
+    for dcMotor in dcMotors:
+        GPIO.output(dcMotor, False)
+
+    GPIO.cleanup()
 
 
 if __name__ == '__main__':
