@@ -41,11 +41,11 @@ import RPi.GPIO as GPIO
 import time
 
 GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
 
 dcMotors = [21, 18, 20, 12, 22, 13, 23, 19]
 
-turn_left = [False,False,False,False,False,True,False,True];
-turn_right = [False,True,False,True,False,False,False,False];
+turn_arount_right = [False,True,False,True,True,False,True,False];
 
 backward = [True,False,True,False,True,False,True,False];
 forward = [False,True,False,True,False,True,False,True];
@@ -54,6 +54,17 @@ STOP = [False,False,False,False,False,False,False,False];
 for dcMotor in dcMotors:
     GPIO.setup(dcMotor, GPIO.OUT)
     GPIO.output(dcMotor, False)
+
+TRIG = 26
+ECHO = 24
+print("초음파 거리 측정기")
+
+GPIO.setup(TRIG, GPIO.OUT)
+GPIO.setup(ECHO, GPIO.IN)
+
+GPIO.output(TRIG, False)
+print("초음파 출력 초기화")
+time.sleep(2)
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -186,6 +197,30 @@ def run(
             imc = im0.copy() if save_crop else im0  # for save_crop
             annotator = Annotator(im0, line_width=line_thickness, example=str(names))
 
+            ## 센서 ##
+            GPIO.output(TRIG,True)
+            time.sleep(0.00001)        # 10uS의 펄스 발생을 위한 딜레이
+            GPIO.output(TRIG, False)
+
+            while GPIO.input(ECHO)==0:
+                start = time.time()     # Echo핀 상승 시간값 저장
+                
+            while GPIO.input(ECHO)==1:
+                stop = time.time()      # Echo핀 하강 시간값 저장
+
+            check_time = stop - start
+            dist = check_time * 34300 / 2
+            print("Dist : %.1f cm" % dist)
+
+            if (dist < 30) :
+                print("센서로 인한 회피 ~")
+                for i in range(len(dcMotors)):
+                    GPIO.output(dcMotors[i], backward[i])
+                time.sleep(1.0)
+                for i in range(len(dcMotors)):
+                    GPIO.output(dcMotors[i], turn_arount_right[i])
+                time.sleep(2.5)
+
             if len(det): # @객체가 감지된 경우
                 # Rescale boxes from img_size to im0 size
                 det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0.shape).round()
@@ -216,7 +251,7 @@ def run(
                     
                     # Check if person is within a certain distance
                     # Define your distance threshold
-                    distance_threshold = 300  # Example: 5.0 meters / 168이 30cm 정도
+                    distance_threshold = 250  # Example: 5.0 meters / 168이 30cm 정도
 
                     # Compute distance between objects and reference point
                     x_reference = im.shape[3] / 2  # 이미지의 가로 중앙 좌표
@@ -226,8 +261,8 @@ def run(
                     object_center = ((xyxy[0] + xyxy[2]) / 2, (xyxy[1] + xyxy[3]) / 2)
                     distance = compute_distance(reference_point, object_center)  # Implement your own distance computation function
 
-                    print("거리는 ")
-                    print(distance)
+                    print(names[c], "와의 거리는", distance)
+
 
                     # Check if the person is within the distance threshold
                     if distance <= distance_threshold:
@@ -237,17 +272,17 @@ def run(
                         # print("backward 시작")
                         for i in range(len(dcMotors)):
                             GPIO.output(dcMotors[i], backward[i])
-                        time.sleep(2.0)
+                        time.sleep(1.0)
                         
                         for i in range(len(dcMotors)):
-                            GPIO.output(dcMotors[i], turn_right[i])
+                            GPIO.output(dcMotors[i], turn_arount_right[i])
                         time.sleep(2.0)
                     else:
                         print("Something outside the distance threshold")
 
                         for i in range(len(dcMotors)):
                             GPIO.output(dcMotors[i], forward[i])
-                        time.sleep(1.0)
+                        # time.sleep(1.0)
 
             else:
                 # Code to be executed when no objects are detected
@@ -256,7 +291,7 @@ def run(
                 # print("포워드 시작")
                 for i in range(len(dcMotors)):
                     GPIO.output(dcMotors[i], forward[i])
-                time.sleep(2.0)
+                # time.sleep(1.0)
  
 
             # Stream results
