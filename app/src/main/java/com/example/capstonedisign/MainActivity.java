@@ -64,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 selected = true;
                 sended_num -= 1;
+                // 자바
             }
         });
 
