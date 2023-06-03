@@ -19,11 +19,11 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 public class MainActivity extends AppCompatActivity {
+    String sended_string = "";
+    boolean call_selected = false, trash_selected = false;
+    Button call_btn, trash_btn;
 
-    int sended_num=0;
-    boolean selected = false;
-    Button connect_btn;
-    Button plus_btn, minus_btn;
+    Button ex_btn;
     EditText ip_edit;
     TextView show_text;
 
@@ -35,35 +35,39 @@ public class MainActivity extends AppCompatActivity {
     private DataOutputStream outstream;
     private DataInputStream instream;
 
-    private int port = 9999;
+    // 현재는 노트북 ip 주소, 추후 라즈베리파이 mac주소 들어갈 예정
+    // 핫스팟 = 172.20.10.3
+    private String ip_net = "10.201.152.158";
 
+    private int port = 9999;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        connect_btn = (Button) findViewById(R.id.button);
-        connect_btn.setOnClickListener(new View.OnClickListener() {
+        ex_btn = (Button) findViewById(R.id.button);
+        ex_btn.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View v) {
-                connect();
+            public void onClick(View view) {
+
+                server_connect();
             }
         });
 
-        plus_btn = (Button) findViewById(R.id.plus_btn);
-        plus_btn.setOnClickListener(new View.OnClickListener() {
+        call_btn = (Button) findViewById(R.id.call_btn);
+        call_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                selected = true;
-                sended_num += 1;
+                call_selected = true;
+                sended_string = "call";
             }
         });
-        minus_btn = (Button) findViewById(R.id.minus_btn);
-        minus_btn.setOnClickListener(new View.OnClickListener() {
+        trash_btn = (Button) findViewById(R.id.trash_btn);
+        trash_btn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                selected = true;
-                sended_num -= 1;
+                trash_selected = true;
+                sended_string = "trash";
             }
         });
 
@@ -71,18 +75,17 @@ public class MainActivity extends AppCompatActivity {
         show_text = (TextView) findViewById(R.id.textView);
     }
 
-    void connect(){
+    void server_connect(){
+        System.out.println("확인");
         mHandler = new Handler(Looper.getMainLooper());
         Log.w("connect","연결 하는중");
-
         Thread checkUpdate = new Thread(){
             public void run(){
-                // Get ip
-                String newip = String.valueOf(ip_edit.getText());
 
                 // Access server
                 try{
-                    socket = new Socket(newip, port);
+                    ip_net = "10.201.152.158";
+                    socket = new Socket(ip_net, port);
                     Log.w("서버 접속됨", "서버 접속됨");
                 }catch (IOException e1){
                     Log.w("서버 접속 못함", "서버 접속 못함");
@@ -104,8 +107,8 @@ public class MainActivity extends AppCompatActivity {
                 try{
                     while(true){
                         String msg = "java test message - ";
-                        if (selected == true){
-                            msg = msg + sended_num;
+                        if (call_selected == true){
+                            msg = msg + sended_string;
                             byte[] data = msg.getBytes();
                             ByteBuffer b1 = ByteBuffer.allocate(4);
                             b1.order(ByteOrder.LITTLE_ENDIAN);
@@ -123,7 +126,30 @@ public class MainActivity extends AppCompatActivity {
 
                             msg = new String(data,"UTF-8");
                             show_text.setText(msg);
-                            selected = false;
+                            call_selected = false;
+                        }
+
+
+                        else if (trash_selected == true){
+                            msg = msg + sended_string;
+                            byte[] data = msg.getBytes();
+                            ByteBuffer b1 = ByteBuffer.allocate(4);
+                            b1.order(ByteOrder.LITTLE_ENDIAN);
+                            b1.putInt(data.length);
+                            outstream.write(b1.array(),0,4);
+                            outstream.write(data);
+
+                            data = new byte[4];
+                            instream.read(data,0,4);
+                            ByteBuffer b2 = ByteBuffer.wrap(data);
+                            b2.order(ByteOrder.LITTLE_ENDIAN);
+                            int length = b2.getInt();
+                            data = new byte[length];
+                            instream.read(data,0,length);
+
+                            msg = new String(data,"UTF-8");
+                            show_text.setText(msg);
+                            trash_selected = false;
                         }
                     }
                 }catch(Exception e){
