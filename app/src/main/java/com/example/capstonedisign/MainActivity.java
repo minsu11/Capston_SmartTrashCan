@@ -20,12 +20,13 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 public class MainActivity extends AppCompatActivity {
     String sended_string = "";
-    boolean call_selected = false, trash_selected = false;
-    Button call_btn, trash_btn;
+    boolean call_selected = false;
+    Button call_btn;
 
-    Button ex_btn;
-    EditText ip_edit;
+
     TextView show_text;
+
+    TextView ex_txt;
 
     // about socket
     private Handler mHandler;
@@ -38,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
     // 현재는 노트북 ip 주소, 추후 라즈베리파이 mac주소 들어갈 예정
     // 핫스팟 = 172.20.10.3
     private String ip_net = "172.20.10.3";
-
+    private String sensor_data = "";
     private int port = 9999;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,17 +56,9 @@ public class MainActivity extends AppCompatActivity {
                 sended_string = "call";
             }
         });
-        trash_btn = (Button) findViewById(R.id.trash_btn);
-        trash_btn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                trash_selected = true;
-                sended_string = "trash";
-            }
-        });
 
-        ip_edit = (EditText) findViewById(R.id.editText);
         show_text = (TextView) findViewById(R.id.textView);
+        ex_txt = (TextView) findViewById(R.id.textView2);
     }
 
     void server_connect(){
@@ -98,51 +91,51 @@ public class MainActivity extends AppCompatActivity {
 
                 try{
                     while(true){
-                        String msg = "";
-                        if (call_selected == true){
-                            msg = sended_string;
-                            byte[] data = msg.getBytes();
+
+                        if (call_selected == true) {
+                            byte[] data = sended_string.getBytes();
                             ByteBuffer b1 = ByteBuffer.allocate(4);
                             b1.order(ByteOrder.LITTLE_ENDIAN);
                             b1.putInt(data.length);
-                            outstream.write(b1.array(),0,4);
+                            outstream.write(b1.array(), 0, 4);
                             outstream.write(data);
 
                             data = new byte[4];
-                            instream.read(data,0,4);
+                            instream.read(data, 0, 4);
                             ByteBuffer b2 = ByteBuffer.wrap(data);
                             b2.order(ByteOrder.LITTLE_ENDIAN);
                             int length = b2.getInt();
                             data = new byte[length];
-                            instream.read(data,0,length);
+                            instream.read(data, 0, length);
 
-                            msg = new String(data,"UTF-8");
-                            show_text.setText(msg);
+                            sended_string = new String(data, "UTF-8");
+                            show_text.setText(sended_string);
                             call_selected = false;
                         }
-
-
-                        else if (trash_selected == true){
-                            msg = sended_string;
-                            byte[] data = msg.getBytes();
+                        // 쓰레기 내부량
+                        else{
+                            sensor_data = "sensor";
+                            byte[] data = sensor_data.getBytes();
                             ByteBuffer b1 = ByteBuffer.allocate(4);
                             b1.order(ByteOrder.LITTLE_ENDIAN);
                             b1.putInt(data.length);
-                            outstream.write(b1.array(),0,4);
+                            outstream.write(b1.array(), 0, 4);
                             outstream.write(data);
 
                             data = new byte[4];
-                            instream.read(data,0,4);
+                            instream.read(data, 0, 4);
                             ByteBuffer b2 = ByteBuffer.wrap(data);
                             b2.order(ByteOrder.LITTLE_ENDIAN);
                             int length = b2.getInt();
                             data = new byte[length];
-                            instream.read(data,0,length);
+                            instream.read(data, 0, length);
 
-                            msg = new String(data,"UTF-8");
-                            show_text.setText(msg);
-                            trash_selected = false;
+                            sensor_data = new String(data, "UTF-8");
+                            ex_txt.setText(sensor_data);
+
                         }
+
+
                     }
                 }catch(Exception e){
 
