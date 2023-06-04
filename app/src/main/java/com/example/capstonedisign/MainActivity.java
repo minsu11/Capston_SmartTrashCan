@@ -37,7 +37,7 @@ public class MainActivity extends AppCompatActivity {
 
     // 현재는 노트북 ip 주소, 추후 라즈베리파이 mac주소 들어갈 예정
     // 핫스팟 = 172.20.10.3
-    private String ip_net = "10.201.152.158";
+    private String ip_net = "172.20.10.3";
 
     private int port = 9999;
     @Override
@@ -45,14 +45,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ex_btn = (Button) findViewById(R.id.button);
-        ex_btn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-
-                server_connect();
-            }
-        });
+        server_connect();
 
         call_btn = (Button) findViewById(R.id.call_btn);
         call_btn.setOnClickListener(new View.OnClickListener() {
@@ -84,7 +77,6 @@ public class MainActivity extends AppCompatActivity {
 
                 // Access server
                 try{
-                    ip_net = "10.201.152.158";
                     socket = new Socket(ip_net, port);
                     Log.w("서버 접속됨", "서버 접속됨");
                 }catch (IOException e1){
@@ -106,9 +98,9 @@ public class MainActivity extends AppCompatActivity {
 
                 try{
                     while(true){
-                        String msg = "java test message - ";
+                        String msg = "";
                         if (call_selected == true){
-                            msg = msg + sended_string;
+                            msg = sended_string;
                             byte[] data = msg.getBytes();
                             ByteBuffer b1 = ByteBuffer.allocate(4);
                             b1.order(ByteOrder.LITTLE_ENDIAN);
@@ -131,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
 
 
                         else if (trash_selected == true){
-                            msg = msg + sended_string;
+                            msg = sended_string;
                             byte[] data = msg.getBytes();
                             ByteBuffer b1 = ByteBuffer.allocate(4);
                             b1.order(ByteOrder.LITTLE_ENDIAN);
