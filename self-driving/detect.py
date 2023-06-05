@@ -100,7 +100,7 @@ def run(
         save_txt=False,  # save results to *.txt
         save_conf=False,  # save confidences in --save-txt labels
         save_crop=False,  # save cropped prediction boxes
-        nosave=False,  # do not save images/videos
+        nosave=True,  # do not save images/videos
         classes=None,  # filter by class: --class 0, or --class 0 2 3
         agnostic_nms=False,  # class-agnostic NMS
         augment=False,  # augmented inference
@@ -138,7 +138,8 @@ def run(
     # Dataloader
     bs = 1  # batch_size
     if webcam:
-        view_img = check_imshow(warn=True)
+        # view_img = check_imshow(warn=True)
+        view_img = False# check_imshow(warn=True)
         dataset = LoadStreams(source, img_size=imgsz, stride=stride, auto=pt, vid_stride=vid_stride)
         bs = len(dataset)
     elif screenshot:
@@ -212,14 +213,19 @@ def run(
             dist = check_time * 34300 / 2
             print("Dist : %.1f cm" % dist)
 
-            if (dist < 30) :
+            if (dist < 15) :
                 print("센서로 인한 회피 ~")
                 for i in range(len(dcMotors)):
                     GPIO.output(dcMotors[i], backward[i])
                 time.sleep(1.0)
                 for i in range(len(dcMotors)):
                     GPIO.output(dcMotors[i], turn_arount_right[i])
-                time.sleep(2.5)
+                time.sleep(1.0)
+            elif (dist < 30) :
+                for i in range(len(dcMotors)):
+                    GPIO.output(dcMotors[i], turn_arount_right[i])
+                time.sleep(1.0)
+                
 
             if len(det): # @객체가 감지된 경우
                 # Rescale boxes from img_size to im0 size
@@ -270,13 +276,13 @@ def run(
                         print("Something within the distance threshold")
                         
                         # print("backward 시작")
-                        for i in range(len(dcMotors)):
-                            GPIO.output(dcMotors[i], backward[i])
-                        time.sleep(1.0)
+                        #for i in range(len(dcMotors)):
+                        #    GPIO.output(dcMotors[i], backward[i])
+                        #time.sleep(1.0)
                         
                         for i in range(len(dcMotors)):
                             GPIO.output(dcMotors[i], turn_arount_right[i])
-                        time.sleep(2.0)
+                        time.sleep(1.0)
                     else:
                         print("Something outside the distance threshold")
 
@@ -296,7 +302,8 @@ def run(
 
             # Stream results
             im0 = annotator.result()
-            if view_img:
+            if False : #view_img:
+            # if view_img:
                 if platform.system() == 'Linux' and p not in windows:
                     windows.append(p)
                     cv2.namedWindow(str(p), cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)  # allow window resize (Linux)
