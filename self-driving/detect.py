@@ -138,8 +138,8 @@ def run(
     # Dataloader
     bs = 1  # batch_size
     if webcam:
-        # view_img = check_imshow(warn=True)
-        view_img = False# check_imshow(warn=True)
+        view_img = check_imshow(warn=True)
+        # view_img = False# check_imshow(warn=True)
         dataset = LoadStreams(source, img_size=imgsz, stride=stride, auto=pt, vid_stride=vid_stride)
         bs = len(dataset)
     elif screenshot:
@@ -213,18 +213,19 @@ def run(
             dist = check_time * 34300 / 2
             print("Dist : %.1f cm" % dist)
 
-            if (dist < 15) :
-                print("센서로 인한 회피 ~")
+            if (dist < 20) :
+                print("센서로 인한 회피!!!!")
                 for i in range(len(dcMotors)):
                     GPIO.output(dcMotors[i], backward[i])
                 time.sleep(1.0)
                 for i in range(len(dcMotors)):
                     GPIO.output(dcMotors[i], turn_arount_right[i])
-                time.sleep(1.0)
-            elif (dist < 30) :
+                time.sleep(1.68)
+            elif (dist < 36) :
+                print("센서로 인한 회피 ~")
                 for i in range(len(dcMotors)):
                     GPIO.output(dcMotors[i], turn_arount_right[i])
-                time.sleep(1.0)
+                time.sleep(1.68)
                 
 
             if len(det): # @객체가 감지된 경우
@@ -257,7 +258,7 @@ def run(
                     
                     # Check if person is within a certain distance
                     # Define your distance threshold
-                    distance_threshold = 250  # Example: 5.0 meters / 168이 30cm 정도
+                    distance_threshold = 10  # Example: 5.0 meters / 168이 30cm 정도
 
                     # Compute distance between objects and reference point
                     x_reference = im.shape[3] / 2  # 이미지의 가로 중앙 좌표
@@ -271,7 +272,13 @@ def run(
 
 
                     # Check if the person is within the distance threshold
-                    if distance <= distance_threshold:
+                    # if names[c] == 'person' and distance <= 200 and dist <= 80 :
+                    if names[c] == 'person' and dist <= 50 or distance <= 50:
+                        print("There's your master. STOP!!!")
+                        for i in range(len(dcMotors)):
+                            GPIO.output(dcMotors[i], STOP[i])
+                        time.sleep(10.0)
+                    elif distance <= distance_threshold:
                         # Execute your desired code here
                         print("Something within the distance threshold")
                         
@@ -302,8 +309,8 @@ def run(
 
             # Stream results
             im0 = annotator.result()
-            if False : #view_img:
-            # if view_img:
+            # if False : #view_img:
+            if view_img:
                 if platform.system() == 'Linux' and p not in windows:
                     windows.append(p)
                     cv2.namedWindow(str(p), cv2.WINDOW_NORMAL | cv2.WINDOW_KEEPRATIO)  # allow window resize (Linux)
