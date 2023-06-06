@@ -38,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
     // 현재는 노트북 ip 주소, 추후 라즈베리파이 mac주소 들어갈 예정
     // 핫스팟 = 172.20.10.3, 192.168.166.136
 
-    private String ip_net = "172.20.10.3" ;
+    private String ip_net = "192.168.166.136";
 
     private String sensor_data = "";
     private int port = 9999;
@@ -98,14 +98,14 @@ public class MainActivity extends AppCompatActivity {
                             ByteBuffer b1 = ByteBuffer.allocate(4);
                             b1.order(ByteOrder.LITTLE_ENDIAN);
                             b1.putInt(data.length);
-                            outstream.write(b1.array(), 0, 4);
+                            // outstream.write(b1.array(), 0, 4);
                             outstream.write(data);
 
-                            data = new byte[4];
-                            instream.read(data, 0, 4);
-                            ByteBuffer b2 = ByteBuffer.wrap(data);
-                            b2.order(ByteOrder.LITTLE_ENDIAN);
-                            int length = b2.getInt();
+                            //data = new byte[4];
+                            //instream.read(data, 0, 4);
+                            //ByteBuffer b2 = ByteBuffer.wrap(data);
+                            //b2.order(ByteOrder.LITTLE_ENDIAN);
+                            int length = 4;
                             data = new byte[length];
                             instream.read(data, 0, length);
 
