@@ -23,7 +23,6 @@ public class MainActivity extends AppCompatActivity {
     boolean call_selected = false;
     Button call_btn;
 
-
     TextView show_text;
 
     TextView ex_txt;
@@ -37,8 +36,10 @@ public class MainActivity extends AppCompatActivity {
     private DataInputStream instream;
 
     // 현재는 노트북 ip 주소, 추후 라즈베리파이 mac주소 들어갈 예정
-    // 핫스팟 = 172.20.10.3
-    private String ip_net = "172.20.10.3";
+    // 핫스팟 = 172.20.10.3, 192.168.166.136
+
+    private String ip_net = "172.20.10.3" ;
+
     private String sensor_data = "";
     private int port = 9999;
     @Override
@@ -92,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
                 try{
                     while(true){
 
-                        if (call_selected == true) {
+                        if (call_selected == true) { //
                             byte[] data = sended_string.getBytes();
                             ByteBuffer b1 = ByteBuffer.allocate(4);
                             b1.order(ByteOrder.LITTLE_ENDIAN);
@@ -114,23 +115,30 @@ public class MainActivity extends AppCompatActivity {
                         }
                         // 쓰레기 내부량
                         else{
-                            sensor_data = "sensor";
+                            Log.w("sensor","보냄");
+                            sensor_data = "sens";
                             byte[] data = sensor_data.getBytes();
                             ByteBuffer b1 = ByteBuffer.allocate(4);
                             b1.order(ByteOrder.LITTLE_ENDIAN);
                             b1.putInt(data.length);
                             outstream.write(b1.array(), 0, 4);
-                            outstream.write(data);
+                            Log.w("write","보냈음");
+                            // outstream.write(data);
 
-                            data = new byte[4];
-                            instream.read(data, 0, 4);
-                            ByteBuffer b2 = ByteBuffer.wrap(data);
-                            b2.order(ByteOrder.LITTLE_ENDIAN);
-                            int length = b2.getInt();
+                            //data = new byte[4];
+                            //instream.read(data, 0, 4);
+                            //ByteBuffer b2 = ByteBuffer.wrap(data);
+                            //b2.order(ByteOrder.LITTLE_ENDIAN);
+                            // int length = b2.getInt();
+                            Log.w("data","받기 준비");
+                            int length = 4;
                             data = new byte[length];
+
                             instream.read(data, 0, length);
+                            Log.w("read", "받았음");
 
                             sensor_data = new String(data, "UTF-8");
+                            Log.w("sensor_Data", sensor_data);
                             ex_txt.setText(sensor_data);
 
                         }
