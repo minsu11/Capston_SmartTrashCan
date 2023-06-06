@@ -1,6 +1,7 @@
 package com.example.capstonedisign;
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.*;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -8,6 +9,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import java.io.DataInputStream;
@@ -23,9 +25,9 @@ public class MainActivity extends AppCompatActivity {
     boolean call_selected = false;
     Button call_btn;
 
-    TextView show_text;
+    ProgressBar progressBar;
 
-    TextView ex_txt;
+    TextView Trash_txt;
 
     // about socket
     private Handler mHandler;
@@ -35,13 +37,11 @@ public class MainActivity extends AppCompatActivity {
     private DataOutputStream outstream;
     private DataInputStream instream;
 
-    // 현재는 노트북 ip 주소, 추후 라즈베리파이 mac주소 들어갈 예정
-    // 핫스팟 = 172.20.10.3, 192.168.166.136
-
     private String ip_net = "192.168.166.136";
 
-    private String sensor_data = "";
     private int port = 9999;
+
+    private String sensor_data = "";
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -57,9 +57,8 @@ public class MainActivity extends AppCompatActivity {
                 sended_string = "call";
             }
         });
-
-        show_text = (TextView) findViewById(R.id.textView);
-        ex_txt = (TextView) findViewById(R.id.textView2);
+        progressBar = (ProgressBar) findViewById(R.id.progressBar);
+        Trash_txt = (TextView) findViewById(R.id.TrashView);
     }
 
     void server_connect(){
@@ -98,19 +97,13 @@ public class MainActivity extends AppCompatActivity {
                             ByteBuffer b1 = ByteBuffer.allocate(4);
                             b1.order(ByteOrder.LITTLE_ENDIAN);
                             b1.putInt(data.length);
-                            // outstream.write(b1.array(), 0, 4);
                             outstream.write(data);
 
-                            //data = new byte[4];
-                            //instream.read(data, 0, 4);
-                            //ByteBuffer b2 = ByteBuffer.wrap(data);
-                            //b2.order(ByteOrder.LITTLE_ENDIAN);
                             int length = 4;
                             data = new byte[length];
                             instream.read(data, 0, length);
 
                             sended_string = new String(data, "UTF-8");
-                            show_text.setText(sended_string);
                             call_selected = false;
                         }
                         // 쓰레기 내부량
@@ -122,24 +115,15 @@ public class MainActivity extends AppCompatActivity {
                             b1.order(ByteOrder.LITTLE_ENDIAN);
                             b1.putInt(data.length);
                             outstream.write(b1.array(), 0, 4);
-                            Log.w("write","보냈음");
-                            // outstream.write(data);
 
-                            //data = new byte[4];
-                            //instream.read(data, 0, 4);
-                            //ByteBuffer b2 = ByteBuffer.wrap(data);
-                            //b2.order(ByteOrder.LITTLE_ENDIAN);
-                            // int length = b2.getInt();
-                            Log.w("data","받기 준비");
                             int length = 4;
                             data = new byte[length];
-
                             instream.read(data, 0, length);
-                            Log.w("read", "받았음");
 
                             sensor_data = new String(data, "UTF-8");
-                            Log.w("sensor_Data", sensor_data);
-                            ex_txt.setText(sensor_data);
+                            Trash_txt.setText(sensor_data);
+                            int Int_sensor = Integer.valueOf(sensor_data);
+                            progressBar.setProgress(Int_sensor);
 
                         }
 
